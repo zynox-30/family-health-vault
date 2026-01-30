@@ -1,33 +1,77 @@
+import { useEffect, useState } from "react";
 import "./App.css";
 
+const API_BASE = "https://family-health-vault-apii.onrender.com";
+
 function App() {
+  const [members, setMembers] = useState([]);
+  const [form, setForm] = useState({
+    name: "",
+    age: "",
+    bloodGroup: "",
+    allergies: "",
+  });
+
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  const fetchMembers = async () => {
+    const res = await fetch(`${API_BASE}/members`);
+    const data = await res.json();
+    setMembers(data);
+  };
+
+  const addMember = async () => {
+    if (!form.name || !form.age) return;
+
+    await fetch(`${API_BASE}/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+
+    setForm({ name: "", age: "", bloodGroup: "", allergies: "" });
+    fetchMembers();
+  };
+
   return (
-    <div className="app">
-      <header className="header">
-        <h1>Family Health Vault</h1>
-        <p>Securely manage your family’s health records</p>
-      </header>
+    <div className="container">
+      <h1>Family Health Vault</h1>
 
-      <main className="main">
-        <div className="card">
-          <h2>👨‍👩‍👧 Family Members</h2>
-          <p>Add and manage health data for each family member.</p>
-        </div>
+      <div className="card">
+        <input
+          placeholder="Name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+        />
+        <input
+          placeholder="Age"
+          type="number"
+          value={form.age}
+          onChange={(e) => setForm({ ...form, age: e.target.value })}
+        />
+        <input
+          placeholder="Blood Group"
+          value={form.bloodGroup}
+          onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })}
+        />
+        <input
+          placeholder="Allergies"
+          value={form.allergies}
+          onChange={(e) => setForm({ ...form, allergies: e.target.value })}
+        />
+        <button onClick={addMember}>Add Member</button>
+      </div>
 
-        <div className="card">
-          <h2>📄 Medical Reports</h2>
-          <p>Upload and store prescriptions, lab reports, and scans.</p>
-        </div>
-
-        <div className="card">
-          <h2>🔒 Secure Access</h2>
-          <p>Your data stays private and protected.</p>
-        </div>
-      </main>
-
-      <footer className="footer">
-        <p>© 2026 Family Health Vault</p>
-      </footer>
+      <div className="list">
+        {members.map((m) => (
+          <div key={m._id} className="item">
+            <strong>{m.name}</strong> — {m.age} yrs | {m.bloodGroup} |{" "}
+            {m.allergies}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
