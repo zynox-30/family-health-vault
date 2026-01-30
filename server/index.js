@@ -1,74 +1,56 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const multer = require("multer");
-const path = require("path");
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// 🔐 MongoDB
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error(err));
-
-// 📌 Schemas
-const MemberSchema = new mongoose.Schema({
-  name: String,
-  age: Number,
-  bloodGroup: String,
-  allergies: String,
-});
-
-const RecordSchema = new mongoose.Schema({
-  memberId: String,
-  title: String,
-  filePath: String,
-  uploadedAt: { type: Date, default: Date.now },
-});
-
-const Member = mongoose.model("Member", MemberSchema);
-const Record = mongoose.model("Record", RecordSchema);
-
-// 📌 Multer
-const storage = multer.diskStorage({
-  destination: "uploads/",
-  filename: (_, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
-
-const upload = multer({ storage });
-
-// 🔹 Routes
-app.get("/members", async (_, res) => {
-  res.json(await Member.find());
-});
-
-app.post("/members", async (req, res) => {
-  const member = new Member(req.body);
-  await member.save();
-  res.json(member);
-});
-
-app.post("/records", upload.single("file"), async (req, res) => {
-  const record = new Record({
-    memberId: req.body.memberId,
-    title: req.body.title,
-    filePath: req.file.filename,
+// Root route (MANDATORY)
+app.get("/", (req, res) => {
+  res.json({
+    status: "API is running",
+    service: "Family Health Vault API",
+    time: new Date().toISOString()
   });
-  await record.save();
-  res.json(record);
 });
 
-app.get("/records/:memberId", async (req, res) => {
-  res.json(await Record.find({ memberId: req.params.memberId }));
+// Health check route
+app.get("/health", async (req, res) => {
+  try {
+    const state = mongoose.connection.readyState;
+    res.json({
+      mongo:
+        state === 1 ? "connected" :
+        state === 2 ? "connecting" :
+        state === 0 ? "disconnected" :
+        "unknown"
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error("❌ MONGODB_URI not found");
+  process.exit(1);
+}
+
+mongoose
+  .connect(MONGODB_URI)
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch(err => {
+    console.error("❌ MongoDB error:", err.message);
+    process.exit(1);
+  });
+
+// Server start
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
-//IHDh1TEKoQ9AzRHt
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
