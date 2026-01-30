@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import "./App.css";
 
-const API_BASE = "https://family-health-vault-apii.onrender.com";
+const API = import.meta.env.VITE_API_URL;
 
 function App() {
-  const [members, setMembers] = useState([]);
   const [form, setForm] = useState({
     name: "",
     age: "",
@@ -12,65 +11,43 @@ function App() {
     allergies: "",
   });
 
-  useEffect(() => {
-    fetchMembers();
-  }, []);
-
-  const fetchMembers = async () => {
-    const res = await fetch(`${API_BASE}/members`);
-    const data = await res.json();
-    setMembers(data);
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const addMember = async () => {
-    if (!form.name || !form.age) return;
+    if (!form.name || !form.age) {
+      alert("Name and Age required");
+      return;
+    }
 
-    await fetch(`${API_BASE}/members`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
+    try {
+      const res = await fetch(`${API}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
 
-    setForm({ name: "", age: "", bloodGroup: "", allergies: "" });
-    fetchMembers();
+      const data = await res.json();
+      alert("Member added successfully");
+      setForm({ name: "", age: "", bloodGroup: "", allergies: "" });
+      console.log(data);
+    } catch (err) {
+      alert("API error");
+      console.error(err);
+    }
   };
 
   return (
-    <div className="container">
+    <div className="app">
       <h1>Family Health Vault</h1>
 
-      <div className="card">
-        <input
-          placeholder="Name"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
-        <input
-          placeholder="Age"
-          type="number"
-          value={form.age}
-          onChange={(e) => setForm({ ...form, age: e.target.value })}
-        />
-        <input
-          placeholder="Blood Group"
-          value={form.bloodGroup}
-          onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })}
-        />
-        <input
-          placeholder="Allergies"
-          value={form.allergies}
-          onChange={(e) => setForm({ ...form, allergies: e.target.value })}
-        />
+      <div className="form">
+        <input name="name" placeholder="Name" value={form.name} onChange={handleChange} />
+        <input name="age" placeholder="Age" value={form.age} onChange={handleChange} />
+        <input name="bloodGroup" placeholder="Blood Group" value={form.bloodGroup} onChange={handleChange} />
+        <input name="allergies" placeholder="Allergies" value={form.allergies} onChange={handleChange} />
         <button onClick={addMember}>Add Member</button>
-      </div>
-
-      <div className="list">
-        {members.map((m) => (
-          <div key={m._id} className="item">
-            <strong>{m.name}</strong> — {m.age} yrs | {m.bloodGroup} |{" "}
-            {m.allergies}
-          </div>
-        ))}
       </div>
     </div>
   );
